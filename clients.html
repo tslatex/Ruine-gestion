@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des clients - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-users"></i> Gestion des clients
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterClientModal">
+                <i class="fas fa-plus"></i> Ajouter un client
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Barre de recherche -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" class="form-control" name="search" placeholder="Rechercher un client..." value="{{ search }}">
+            <button class="btn btn-outline-secondary ms-2" type="submit">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des clients -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if clients %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Contact</th>
+                                <th>Adresse</th>
+                                <th>Email</th>
+                                <th>Total achats</th>
+                                <th>Date création</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for client in clients %}
+                            <tr>
+                                <td><strong>{{ client.nom }}</strong></td>
+                                <td>{{ client.contact or '-' }}</td>
+                                <td>{{ client.adresse or '-' }}</td>
+                                <td>{{ client.email or '-' }}</td>
+                                <td>
+                                    <span class="badge bg-success">
+                                        {{ "{:,.0f}".format(client.total_achats).replace(',', ' ') }} Ar
+                                    </span>
+                                </td>
+                                <td>{{ client.created_at.strftime('%d/%m/%Y') }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="modifierClient({{ client.id }}, '{{ client.nom }}', '{{ client.contact or '' }}', '{{ client.adresse or '' }}', '{{ client.email or '' }}')">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('clients.supprimer_client', client_id=client.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce client ?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-users fa-3x mb-3"></i>
+                    <p>Aucun client trouvé</p>
+                    {% if search %}
+                    <a href="{{ url_for('clients.liste_clients') }}" class="btn btn-outline-secondary">Voir tous les clients</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Client -->
+<div class="modal fade" id="ajouterClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('clients.ajouter_client') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom du client *</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contact" class="form-label">Contact</label>
+                        <input type="text" class="form-control" id="contact" name="contact" placeholder="Numéro de téléphone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="adresse" class="form-label">Adresse</label>
+                        <textarea class="form-control" id="adresse" name="adresse" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Client -->
+<div class="modal fade" id="modifierClientModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le client</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formModifierClient">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modifier_nom" class="form-label">Nom du client *</label>
+                        <input type="text" class="form-control" id="modifier_nom" name="nom" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modifier_contact" class="form-label">Contact</label>
+                        <input type="text" class="form-control" id="modifier_contact" name="contact" placeholder="Numéro de téléphone">
+                    </div>
+                    <div class="mb-3">
+                        <label for="modifier_adresse" class="form-label">Adresse</label>
+                        <textarea class="form-control" id="modifier_adresse" name="adresse" rows="2"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modifier_email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="modifier_email" name="email">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function modifierClient(id, nom, contact, adresse, email) {
+    document.getElementById('formModifierClient').action = '/clients/modifier/' + id;
+    document.getElementById('modifier_nom').value = nom;
+    document.getElementById('modifier_contact').value = contact;
+    document.getElementById('modifier_adresse').value = adresse;
+    document.getElementById('modifier_email').value = email;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modifierClientModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

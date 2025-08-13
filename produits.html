@@ -1,0 +1,217 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des produits - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-box"></i> Gestion des produits
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterProduitModal">
+                <i class="fas fa-plus"></i> Ajouter un produit
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Barre de recherche -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <input type="text" class="form-control" name="search" placeholder="Rechercher un produit..." value="{{ search }}">
+            <button class="btn btn-outline-secondary ms-2" type="submit">
+                <i class="fas fa-search"></i>
+            </button>
+        </form>
+    </div>
+</div>
+
+<!-- Liste des produits -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if produits %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Nom</th>
+                                <th>Prix d'achat</th>
+                                <th>Prix de vente</th>
+                                <th>Marge</th>
+                                <th>Stock</th>
+                                <th>Seuil d'alerte</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for produit in produits %}
+                            <tr class="{{ 'table-warning' if produit.est_stock_bas else '' }}">
+                                <td>
+                                    <strong>{{ produit.nom }}</strong>
+                                    {% if produit.est_stock_bas %}
+                                    <i class="fas fa-exclamation-triangle text-warning ms-1" title="Stock bas"></i>
+                                    {% endif %}
+                                </td>
+                                <td>{{ "{:,.0f}".format(produit.prix_achat).replace(',', ' ') }} Ar</td>
+                                <td>{{ "{:,.0f}".format(produit.prix_unitaire).replace(',', ' ') }} Ar</td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if produit.marge_benefice > 0 else 'danger' }}">
+                                        {{ "{:,.0f}".format(produit.marge_benefice).replace(',', ' ') }} Ar
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if produit.est_stock_bas else 'success' }}">
+                                        {{ produit.stock }}
+                                    </span>
+                                </td>
+                                <td>{{ produit.seuil_alerte }}</td>
+                                <td>
+                                    {% if produit.est_stock_bas %}
+                                    <span class="badge bg-warning">Stock bas</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Disponible</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-outline-primary" onclick="modifierProduit({{ produit.id }}, '{{ produit.nom }}', {{ produit.prix_achat }}, {{ produit.prix_unitaire }}, {{ produit.seuil_alerte }})">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <form method="POST" action="{{ url_for('produits.supprimer_produit', produit_id=produit.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer ce produit ?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-box fa-3x mb-3"></i>
+                    <p>Aucun produit trouvé</p>
+                    {% if search %}
+                    <a href="{{ url_for('produits.liste_produits') }}" class="btn btn-outline-secondary">Voir tous les produits</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Produit -->
+<div class="modal fade" id="ajouterProduitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Ajouter un produit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('produits.ajouter_produit') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nom" class="form-label">Nom du produit</label>
+                        <input type="text" class="form-control" id="nom" name="nom" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prix_achat" class="form-label">Prix d'achat (Ar)</label>
+                                <input type="number" class="form-control" id="prix_achat" name="prix_achat" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prix_unitaire" class="form-label">Prix de vente (Ar)</label>
+                                <input type="number" class="form-control" id="prix_unitaire" name="prix_unitaire" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="stock_initial" class="form-label">Stock initial</label>
+                                <input type="number" class="form-control" id="stock_initial" name="stock_initial" value="0" min="0">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="seuil_alerte" class="form-label">Seuil d'alerte</label>
+                                <input type="number" class="form-control" id="seuil_alerte" name="seuil_alerte" value="10" min="0">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Ajouter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Produit -->
+<div class="modal fade" id="modifierProduitModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le produit</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formModifierProduit">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modifier_nom" class="form-label">Nom du produit</label>
+                        <input type="text" class="form-control" id="modifier_nom" name="nom" required>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modifier_prix_achat" class="form-label">Prix d'achat (Ar)</label>
+                                <input type="number" class="form-control" id="modifier_prix_achat" name="prix_achat" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="modifier_prix_unitaire" class="form-label">Prix de vente (Ar)</label>
+                                <input type="number" class="form-control" id="modifier_prix_unitaire" name="prix_unitaire" step="0.01" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modifier_seuil_alerte" class="form-label">Seuil d'alerte</label>
+                        <input type="number" class="form-control" id="modifier_seuil_alerte" name="seuil_alerte" min="0">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function modifierProduit(id, nom, prixAchat, prixUnitaire, seuilAlerte) {
+    document.getElementById('formModifierProduit').action = '/produits/modifier/' + id;
+    document.getElementById('modifier_nom').value = nom;
+    document.getElementById('modifier_prix_achat').value = prixAchat;
+    document.getElementById('modifier_prix_unitaire').value = prixUnitaire;
+    document.getElementById('modifier_seuil_alerte').value = seuilAlerte;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modifierProduitModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

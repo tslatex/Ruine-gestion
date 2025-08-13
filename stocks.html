@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des stocks - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-warehouse"></i> Gestion des stocks
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#mouvementStockModal">
+                <i class="fas fa-plus"></i> Mouvement de stock
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Alertes stock bas -->
+{% if produits_stock_bas %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="alert alert-warning">
+            <h5><i class="fas fa-exclamation-triangle"></i> Alertes Stock Bas</h5>
+            <p><strong>{{ produits_stock_bas|length }} produit(s) nécessitent un réapprovisionnement :</strong></p>
+            <div class="row">
+                {% for produit in produits_stock_bas %}
+                <div class="col-md-4 mb-2">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>{{ produit.nom }} ({{ produit.stock }} restant)</span>
+                        <button class="btn btn-sm btn-outline-success" onclick="reapprovisionner({{ produit.id }}, '{{ produit.nom }}')">
+                            <i class="fas fa-plus"></i> Réapprovisionner
+                        </button>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- État du stock -->
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-boxes"></i> État du stock</h5>
+            </div>
+            <div class="card-body">
+                {% if produits %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Stock actuel</th>
+                                <th>Seuil d'alerte</th>
+                                <th>Prix unitaire</th>
+                                <th>Valeur stock</th>
+                                <th>Statut</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for produit in produits %}
+                            <tr class="{{ 'table-warning' if produit.est_stock_bas else '' }}">
+                                <td>
+                                    <strong>{{ produit.nom }}</strong>
+                                    {% if produit.est_stock_bas %}
+                                    <i class="fas fa-exclamation-triangle text-warning ms-1" title="Stock bas"></i>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if produit.est_stock_bas else 'success' }} fs-6">
+                                        {{ produit.stock }}
+                                    </span>
+                                </td>
+                                <td>{{ produit.seuil_alerte }}</td>
+                                <td>{{ "{:,.0f}".format(produit.prix_unitaire).replace(',', ' ') }} Ar</td>
+                                <td>{{ "{:,.0f}".format(produit.stock * produit.prix_achat).replace(',', ' ') }} Ar</td>
+                                <td>
+                                    {% if produit.est_stock_bas %}
+                                    <span class="badge bg-warning">Stock bas</span>
+                                    {% else %}
+                                    <span class="badge bg-success">Suffisant</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-success" onclick="ajouterStock({{ produit.id }}, '{{ produit.nom }}', 'entree')" title="Entrée de stock">
+                                            <i class="fas fa-plus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="ajouterStock({{ produit.id }}, '{{ produit.nom }}', 'sortie')" title="Sortie de stock">
+                                            <i class="fas fa-minus"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-primary" onclick="reapprovisionner({{ produit.id }}, '{{ produit.nom }}')" title="Réapprovisionner">
+                                            <i class="fas fa-truck"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-warehouse fa-3x mb-3"></i>
+                    <p>Aucun produit en stock</p>
+                    <a href="{{ url_for('produits.liste_produits') }}" class="btn btn-primary">
+                        Ajouter des produits
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Historique des mouvements -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Historique des mouvements</h5>
+            </div>
+            <div class="card-body">
+                {% if mouvements %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Produit</th>
+                                <th>Type</th>
+                                <th>Quantité</th>
+                                <th>Motif</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for mouvement in mouvements %}
+                            <tr>
+                                <td>{{ mouvement.date_mouvement.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td><strong>{{ mouvement.produit.nom }}</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if mouvement.type_mouvement == 'entree' else 'danger' }}">
+                                        <i class="fas fa-{{ 'plus' if mouvement.type_mouvement == 'entree' else 'minus' }}"></i>
+                                        {{ mouvement.type_mouvement|title }}
+                                    </span>
+                                </td>
+                                <td>{{ mouvement.quantite }}</td>
+                                <td>{{ mouvement.motif or '-' }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-history fa-3x mb-3"></i>
+                    <p>Aucun mouvement de stock enregistré</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Mouvement Stock -->
+<div class="modal fade" id="mouvementStockModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Mouvement de stock</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('stocks.ajouter_mouvement') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="produit_id" class="form-label">Produit *</label>
+                        <select class="form-select" id="produit_id" name="produit_id" required>
+                            <option value="">Sélectionner un produit</option>
+                            {% for produit in produits %}
+                            <option value="{{ produit.id }}">{{ produit.nom }} (Stock: {{ produit.stock }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="type_mouvement" class="form-label">Type de mouvement *</label>
+                        <select class="form-select" id="type_mouvement" name="type_mouvement" required>
+                            <option value="">Sélectionner le type</option>
+                            <option value="entree">Entrée de stock</option>
+                            <option value="sortie">Sortie de stock</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantite" class="form-label">Quantité *</label>
+                        <input type="number" class="form-control" id="quantite" name="quantite" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="motif" class="form-label">Motif</label>
+                        <input type="text" class="form-control" id="motif" name="motif" placeholder="Raison du mouvement">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Réapprovisionnement -->
+<div class="modal fade" id="reapprovisionnementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Réapprovisionnement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formReapprovisionnement">
+                <div class="modal-body">
+                    <p>Réapprovisionner le produit: <strong id="produit-reappro-nom"></strong></p>
+                    
+                    <div class="mb-3">
+                        <label for="quantite_reappro" class="form-label">Quantité à ajouter *</label>
+                        <input type="number" class="form-control" id="quantite_reappro" name="quantite" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="motif_reappro" class="form-label">Motif</label>
+                        <input type="text" class="form-control" id="motif_reappro" name="motif" value="Réapprovisionnement">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-success">Réapprovisionner</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function ajouterStock(produitId, produitNom, typeMouvement) {
+    document.getElementById('produit_id').value = produitId;
+    document.getElementById('type_mouvement').value = typeMouvement;
+    document.getElementById('quantite').value = '';
+    document.getElementById('motif').value = '';
+    
+    var modal = new bootstrap.Modal(document.getElementById('mouvementStockModal'));
+    modal.show();
+}
+
+function reapprovisionner(produitId, produitNom) {
+    document.getElementById('formReapprovisionnement').action = '/stocks/reapprovisionner/' + produitId;
+    document.getElementById('produit-reappro-nom').textContent = produitNom;
+    document.getElementById('quantite_reappro').value = '';
+    document.getElementById('motif_reappro').value = 'Réapprovisionnement';
+    
+    var modal = new bootstrap.Modal(document.getElementById('reapprovisionnementModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

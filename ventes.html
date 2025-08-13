@@ -1,0 +1,248 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des ventes - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-shopping-cart"></i> Gestion des ventes
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterVenteModal">
+                <i class="fas fa-plus"></i> Nouvelle vente
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques financières -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-success text-white">
+            <div class="card-body text-center">
+                <h4>{{ "{:,.0f}".format(stats.total_ventes).replace(',', ' ') }} Ar</h4>
+                <p class="mb-0">Chiffre d'affaires</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-info text-white">
+            <div class="card-body text-center">
+                <h4>{{ "{:,.0f}".format(stats.total_benefices).replace(',', ' ') }} Ar</h4>
+                <p class="mb-0">Bénéfices</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body text-center">
+                <h4>{{ stats.nombre_ventes }}</h4>
+                <p class="mb-0">Ventes totales</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body text-center">
+                <h4>{{ "{:,.0f}".format(stats.moyenne_vente).replace(',', ' ') }} Ar</h4>
+                <p class="mb-0">Vente moyenne</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Liste des ventes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">Historique des ventes</h5>
+            </div>
+            <div class="card-body">
+                {% if ventes.items %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Produit</th>
+                                <th>Client</th>
+                                <th>Quantité</th>
+                                <th>Prix unitaire</th>
+                                <th>Total</th>
+                                <th>Bénéfice</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vente in ventes.items %}
+                            <tr>
+                                <td>{{ vente.date_vente.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td><strong>{{ vente.produit.nom }}</strong></td>
+                                <td>{{ vente.client.nom if vente.client else 'Client direct' }}</td>
+                                <td>{{ vente.quantite }}</td>
+                                <td>{{ "{:,.0f}".format(vente.prix_unitaire).replace(',', ' ') }} Ar</td>
+                                <td><strong>{{ "{:,.0f}".format(vente.total).replace(',', ' ') }} Ar</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if vente.benefice > 0 else 'danger' }}">
+                                        {{ "{:,.0f}".format(vente.benefice).replace(',', ' ') }} Ar
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                {% if ventes.pages > 1 %}
+                <nav aria-label="Navigation des ventes">
+                    <ul class="pagination justify-content-center">
+                        {% if ventes.has_prev %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('ventes.liste_ventes', page=ventes.prev_num) }}">Précédent</a>
+                        </li>
+                        {% endif %}
+                        
+                        {% for page_num in ventes.iter_pages() %}
+                            {% if page_num %}
+                                {% if page_num != ventes.page %}
+                                <li class="page-item">
+                                    <a class="page-link" href="{{ url_for('ventes.liste_ventes', page=page_num) }}">{{ page_num }}</a>
+                                </li>
+                                {% else %}
+                                <li class="page-item active">
+                                    <span class="page-link">{{ page_num }}</span>
+                                </li>
+                                {% endif %}
+                            {% else %}
+                            <li class="page-item disabled">
+                                <span class="page-link">...</span>
+                            </li>
+                            {% endif %}
+                        {% endfor %}
+                        
+                        {% if ventes.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="{{ url_for('ventes.liste_ventes', page=ventes.next_num) }}">Suivant</a>
+                        </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+                {% endif %}
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                    <p>Aucune vente enregistrée</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Vente -->
+<div class="modal fade" id="ajouterVenteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle vente</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('ventes.ajouter_vente') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="produit_id" class="form-label">Produit *</label>
+                        <select class="form-select" id="produit_id" name="produit_id" required onchange="updateProduitInfo()">
+                            <option value="">Sélectionner un produit</option>
+                            {% for produit in produits %}
+                            <option value="{{ produit.id }}" 
+                                    data-prix="{{ produit.prix_unitaire }}" 
+                                    data-stock="{{ produit.stock }}">
+                                {{ produit.nom }} (Stock: {{ produit.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Client</label>
+                        <select class="form-select" id="client_id" name="client_id">
+                            <option value="">Client direct</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="quantite" class="form-label">Quantité *</label>
+                                <input type="number" class="form-control" id="quantite" name="quantite" min="1" required onchange="updateTotal()">
+                                <div class="form-text">Stock disponible: <span id="stock-disponible">-</span></div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="prix_affiche" class="form-label">Prix unitaire</label>
+                                <input type="text" class="form-control" id="prix_affiche" readonly>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <strong>Total: <span id="total-vente">0 Ar</span></strong>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Enregistrer la vente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateProduitInfo() {
+    const select = document.getElementById('produit_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        const prix = parseFloat(selectedOption.dataset.prix);
+        const stock = parseInt(selectedOption.dataset.stock);
+        
+        document.getElementById('prix_affiche').value = prix.toLocaleString() + ' Ar';
+        document.getElementById('stock-disponible').textContent = stock;
+        
+        // Reset quantité et total
+        document.getElementById('quantite').value = '';
+        document.getElementById('total-vente').textContent = '0 Ar';
+        
+        // Mettre à jour le max de quantité
+        document.getElementById('quantite').max = stock;
+    } else {
+        document.getElementById('prix_affiche').value = '';
+        document.getElementById('stock-disponible').textContent = '-';
+        document.getElementById('total-vente').textContent = '0 Ar';
+    }
+}
+
+function updateTotal() {
+    const select = document.getElementById('produit_id');
+    const selectedOption = select.options[select.selectedIndex];
+    const quantite = parseInt(document.getElementById('quantite').value) || 0;
+    
+    if (selectedOption.value && quantite > 0) {
+        const prix = parseFloat(selectedOption.dataset.prix);
+        const total = prix * quantite;
+        document.getElementById('total-vente').textContent = total.toLocaleString() + ' Ar';
+    } else {
+        document.getElementById('total-vente').textContent = '0 Ar';
+    }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,283 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des livraisons - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-truck"></i> Gestion des livraisons
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterLivraisonModal">
+                <i class="fas fa-plus"></i> Nouvelle livraison
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <select class="form-select me-2" name="statut" onchange="this.form.submit()">
+                <option value="">Tous les statuts</option>
+                <option value="En cours" {{ 'selected' if statut_filtre == 'En cours' else '' }}>En cours</option>
+                <option value="Livré" {{ 'selected' if statut_filtre == 'Livré' else '' }}>Livré</option>
+                <option value="Annulé" {{ 'selected' if statut_filtre == 'Annulé' else '' }}>Annulé</option>
+            </select>
+            {% if statut_filtre %}
+            <a href="{{ url_for('livraisons.liste_livraisons') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Liste des livraisons -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if livraisons %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Client</th>
+                                <th>Adresse</th>
+                                <th>Date prévue</th>
+                                <th>Statut</th>
+                                <th>Date livraison</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for livraison in livraisons %}
+                            <tr class="{{ 'table-success' if livraison.statut == 'Livré' else 'table-danger' if livraison.statut == 'Annulé' else '' }}">
+                                <td><strong>{{ livraison.client.nom }}</strong></td>
+                                <td>{{ livraison.adresse }}</td>
+                                <td>
+                                    {% if livraison.date_prevue %}
+                                    {{ livraison.date_prevue.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                    <span class="text-muted">Non définie</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if livraison.statut == 'Livré' else 'danger' if livraison.statut == 'Annulé' else 'warning' }}">
+                                        {{ livraison.statut }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if livraison.date_livraison %}
+                                    {{ livraison.date_livraison.strftime('%d/%m/%Y %H:%M') }}
+                                    {% else %}
+                                    <span class="text-muted">-</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span title="{{ livraison.notes or '' }}">
+                                        {{ (livraison.notes[:30] + '...') if livraison.notes and livraison.notes|length > 30 else (livraison.notes or '-') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if livraison.statut == 'En cours' %}
+                                    <div class="btn-group" role="group">
+                                        <button class="btn btn-sm btn-outline-success" onclick="modifierStatut({{ livraison.id }}, 'Livré', '{{ livraison.notes or '' }}')">
+                                            <i class="fas fa-check"></i> Livrer
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="modifierStatut({{ livraison.id }}, 'Annulé', '{{ livraison.notes or '' }}')">
+                                            <i class="fas fa-times"></i> Annuler
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-sm btn-outline-primary" onclick="voirDetails({{ livraison.id }}, '{{ livraison.client.nom }}', '{{ livraison.adresse }}', '{{ livraison.date_prevue.strftime('%Y-%m-%dT%H:%M') if livraison.date_prevue else '' }}', '{{ livraison.statut }}', '{{ livraison.notes or '' }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <form method="POST" action="{{ url_for('livraisons.supprimer_livraison', livraison_id=livraison.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette livraison ?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-truck fa-3x mb-3"></i>
+                    <p>Aucune livraison programmée</p>
+                    {% if statut_filtre %}
+                    <p>Aucune livraison avec le statut "{{ statut_filtre }}"</p>
+                    <a href="{{ url_for('livraisons.liste_livraisons') }}" class="btn btn-outline-secondary">Voir toutes les livraisons</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Livraison -->
+<div class="modal fade" id="ajouterLivraisonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle livraison</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('livraisons.ajouter_livraison') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Client *</label>
+                        <select class="form-select" id="client_id" name="client_id" required onchange="updateAdresse()">
+                            <option value="">Sélectionner un client</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}" data-adresse="{{ client.adresse or '' }}">
+                                {{ client.nom }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="adresse" class="form-label">Adresse de livraison *</label>
+                        <textarea class="form-control" id="adresse" name="adresse" rows="3" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="date_prevue" class="form-label">Date prévue</label>
+                        <input type="datetime-local" class="form-control" id="date_prevue" name="date_prevue">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="2" placeholder="Instructions spéciales, commentaires..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Programmer la livraison</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Statut -->
+<div class="modal fade" id="modifierStatutModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le statut</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formModifierStatut">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nouveau_statut" class="form-label">Nouveau statut</label>
+                        <select class="form-select" id="nouveau_statut" name="statut" required>
+                            <option value="En cours">En cours</option>
+                            <option value="Livré">Livré</option>
+                            <option value="Annulé">Annulé</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes_statut" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes_statut" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détails Livraison -->
+<div class="modal fade" id="detailsLivraisonModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de la livraison</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Client:</h6>
+                        <p id="details-client"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statut:</h6>
+                        <p><span id="details-statut" class="badge"></span></p>
+                    </div>
+                </div>
+                
+                <h6>Adresse de livraison:</h6>
+                <p id="details-adresse"></p>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Date prévue:</h6>
+                        <p id="details-date-prevue"></p>
+                    </div>
+                </div>
+                
+                <h6>Notes:</h6>
+                <p id="details-notes"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateAdresse() {
+    const select = document.getElementById('client_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        const adresse = selectedOption.dataset.adresse;
+        document.getElementById('adresse').value = adresse;
+    }
+}
+
+function modifierStatut(livraisonId, nouveauStatut, notesActuelles) {
+    document.getElementById('formModifierStatut').action = '/livraisons/modifier/' + livraisonId;
+    document.getElementById('nouveau_statut').value = nouveauStatut;
+    document.getElementById('notes_statut').value = notesActuelles;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modifierStatutModal'));
+    modal.show();
+}
+
+function voirDetails(id, client, adresse, datePrevue, statut, notes) {
+    document.getElementById('details-client').textContent = client;
+    document.getElementById('details-adresse').textContent = adresse;
+    document.getElementById('details-date-prevue').textContent = datePrevue ? new Date(datePrevue).toLocaleString('fr-FR') : 'Non définie';
+    document.getElementById('details-notes').textContent = notes || 'Aucune note';
+    
+    const statutBadge = document.getElementById('details-statut');
+    statutBadge.textContent = statut;
+    statutBadge.className = 'badge bg-' + (statut === 'Livré' ? 'success' : statut === 'Annulé' ? 'danger' : 'warning');
+    
+    var modal = new bootstrap.Modal(document.getElementById('detailsLivraisonModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

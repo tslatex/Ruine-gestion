@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Tableau de bord - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1 class="h2 mb-4">
+            <i class="fas fa-tachometer-alt"></i> Tableau de bord
+        </h1>
+    </div>
+</div>
+
+<!-- Statistiques principales -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_produits }}</h4>
+                        <p class="mb-0">Produits</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-box fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_clients }}</h4>
+                        <p class="mb-0">Clients</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ total_ventes }}</h4>
+                        <p class="mb-0">Ventes totales</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-shopping-cart fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h4>{{ livraisons_en_cours }}</h4>
+                        <p class="mb-0">Livraisons en cours</p>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-truck fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Statistiques financières -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-chart-line"></i> Résultats financiers</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-6">
+                        <h6>Chiffre d'affaires total</h6>
+                        <h4 class="text-success">{{ "{:,.0f}".format(stats_financieres.total_ventes).replace(',', ' ') }} Ar</h4>
+                    </div>
+                    <div class="col-6">
+                        <h6>Bénéfices total</h6>
+                        <h4 class="text-info">{{ "{:,.0f}".format(stats_financieres.total_benefices).replace(',', ' ') }} Ar</h4>
+                    </div>
+                </div>
+                <hr>
+                <div class="row">
+                    <div class="col-6">
+                        <h6>Ventes aujourd'hui</h6>
+                        <h5>{{ "{:,.0f}".format(stats_financieres.ventes_jour).replace(',', ' ') }} Ar</h5>
+                    </div>
+                    <div class="col-6">
+                        <h6>Ventes ce mois</h6>
+                        <h5>{{ "{:,.0f}".format(stats_financieres.ventes_mois).replace(',', ' ') }} Ar</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Alertes Stock</h5>
+            </div>
+            <div class="card-body">
+                {% if produits_stock_bas %}
+                    <p class="text-warning"><strong>{{ produits_stock_bas|length }} produit(s) en stock bas !</strong></p>
+                    <div class="list-group list-group-flush">
+                        {% for produit in produits_stock_bas[:5] %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center px-0">
+                            <span>{{ produit.nom }}</span>
+                            <span class="badge bg-warning">{{ produit.stock }} restant(s)</span>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% if produits_stock_bas|length > 5 %}
+                    <small class="text-muted">et {{ produits_stock_bas|length - 5 }} autre(s)...</small>
+                    {% endif %}
+                {% else %}
+                    <p class="text-success">
+                        <i class="fas fa-check-circle"></i> Tous les stocks sont suffisants
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ventes récentes -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="fas fa-history"></i> Ventes récentes</h5>
+            </div>
+            <div class="card-body">
+                {% if ventes_recentes %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Produit</th>
+                                <th>Client</th>
+                                <th>Quantité</th>
+                                <th>Total</th>
+                                <th>Date</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for vente in ventes_recentes %}
+                            <tr>
+                                <td>{{ vente.produit.nom }}</td>
+                                <td>{{ vente.client.nom if vente.client else 'Client direct' }}</td>
+                                <td>{{ vente.quantite }}</td>
+                                <td>{{ "{:,.0f}".format(vente.total).replace(',', ' ') }} Ar</td>
+                                <td>{{ vente.date_vente.strftime('%d/%m/%Y %H:%M') }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <div class="text-center">
+                    <a href="{{ url_for('ventes.liste_ventes') }}" class="btn btn-outline-primary">
+                        Voir toutes les ventes
+                    </a>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-shopping-cart fa-3x mb-3"></i>
+                    <p>Aucune vente enregistrée</p>
+                    <a href="{{ url_for('ventes.liste_ventes') }}" class="btn btn-primary">
+                        Enregistrer une vente
+                    </a>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

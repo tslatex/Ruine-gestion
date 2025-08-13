@@ -1,0 +1,328 @@
+{% extends "base.html" %}
+
+{% block title %}Gestion des réservations - RuineGestion{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2">
+                <i class="fas fa-calendar-check"></i> Gestion des réservations
+            </h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#ajouterReservationModal">
+                <i class="fas fa-plus"></i> Nouvelle réservation
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Filtres -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <form method="GET" class="d-flex">
+            <select class="form-select me-2" name="statut" onchange="this.form.submit()">
+                <option value="">Tous les statuts</option>
+                <option value="En attente" {{ 'selected' if statut_filtre == 'En attente' else '' }}>En attente</option>
+                <option value="Confirmé" {{ 'selected' if statut_filtre == 'Confirmé' else '' }}>Confirmé</option>
+                <option value="Annulé" {{ 'selected' if statut_filtre == 'Annulé' else '' }}>Annulé</option>
+            </select>
+            {% if statut_filtre %}
+            <a href="{{ url_for('reservations.liste_reservations') }}" class="btn btn-outline-secondary">
+                <i class="fas fa-times"></i>
+            </a>
+            {% endif %}
+        </form>
+    </div>
+</div>
+
+<!-- Liste des réservations -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-body">
+                {% if reservations %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Date réservation</th>
+                                <th>Produit</th>
+                                <th>Client</th>
+                                <th>Quantité</th>
+                                <th>Date limite</th>
+                                <th>Statut</th>
+                                <th>Notes</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for reservation in reservations %}
+                            <tr class="{{ 'table-success' if reservation.statut == 'Confirmé' else 'table-danger' if reservation.statut == 'Annulé' else '' }}">
+                                <td>{{ reservation.date_reservation.strftime('%d/%m/%Y %H:%M') }}</td>
+                                <td>
+                                    <strong>{{ reservation.produit.nom }}</strong>
+                                    <br>
+                                    <small class="text-muted">Stock: {{ reservation.produit.stock }}</small>
+                                </td>
+                                <td><strong>{{ reservation.client.nom }}</strong></td>
+                                <td>
+                                    <span class="badge bg-{{ 'danger' if reservation.quantite > reservation.produit.stock else 'info' }} fs-6">
+                                        {{ reservation.quantite }}
+                                    </span>
+                                    {% if reservation.quantite > reservation.produit.stock %}
+                                    <br><small class="text-danger">Stock insuffisant</small>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    {% if reservation.date_limite %}
+                                    {{ reservation.date_limite.strftime('%d/%m/%Y %H:%M') }}
+                                    {% if reservation.date_limite < moment.utcnow() and reservation.statut == 'En attente' %}
+                                    <br><small class="text-danger">Expiré</small>
+                                    {% endif %}
+                                    {% else %}
+                                    <span class="text-muted">Aucune</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-{{ 'success' if reservation.statut == 'Confirmé' else 'danger' if reservation.statut == 'Annulé' else 'warning' }}">
+                                        {{ reservation.statut }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span title="{{ reservation.notes or '' }}">
+                                        {{ (reservation.notes[:30] + '...') if reservation.notes and reservation.notes|length > 30 else (reservation.notes or '-') }}
+                                    </span>
+                                </td>
+                                <td>
+                                    {% if reservation.statut == 'En attente' %}
+                                    <div class="btn-group" role="group">
+                                        {% if reservation.quantite <= reservation.produit.stock %}
+                                        <form method="POST" action="{{ url_for('reservations.confirmer_reservation', reservation_id=reservation.id) }}" class="d-inline">
+                                            <button type="submit" class="btn btn-sm btn-outline-success" title="Confirmer et créer la vente">
+                                                <i class="fas fa-check"></i>
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-danger" onclick="modifierStatut({{ reservation.id }}, 'Annulé', '{{ reservation.notes or '' }}')" title="Annuler">
+                                            <i class="fas fa-times"></i>
+                                        </button>
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <button class="btn btn-sm btn-outline-primary" onclick="voirDetails({{ reservation.id }}, '{{ reservation.produit.nom }}', '{{ reservation.client.nom }}', {{ reservation.quantite }}, '{{ reservation.date_reservation.strftime('%d/%m/%Y %H:%M') }}', '{{ reservation.date_limite.strftime('%d/%m/%Y %H:%M') if reservation.date_limite else '' }}', '{{ reservation.statut }}', '{{ reservation.notes or '' }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                    
+                                    <form method="POST" action="{{ url_for('reservations.supprimer_reservation', reservation_id=reservation.id) }}" class="d-inline" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette réservation ?')">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center text-muted">
+                    <i class="fas fa-calendar-check fa-3x mb-3"></i>
+                    <p>Aucune réservation trouvée</p>
+                    {% if statut_filtre %}
+                    <p>Aucune réservation avec le statut "{{ statut_filtre }}"</p>
+                    <a href="{{ url_for('reservations.liste_reservations') }}" class="btn btn-outline-secondary">Voir toutes les réservations</a>
+                    {% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Ajouter Réservation -->
+<div class="modal fade" id="ajouterReservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Nouvelle réservation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" action="{{ url_for('reservations.ajouter_reservation') }}">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="produit_id" class="form-label">Produit *</label>
+                        <select class="form-select" id="produit_id" name="produit_id" required onchange="updateStockInfo()">
+                            <option value="">Sélectionner un produit</option>
+                            {% for produit in produits %}
+                            <option value="{{ produit.id }}" data-stock="{{ produit.stock }}" data-prix="{{ produit.prix_unitaire }}">
+                                {{ produit.nom }} (Stock: {{ produit.stock }})
+                            </option>
+                            {% endfor %}
+                        </select>
+                        <div class="form-text">Stock disponible: <span id="stock-disponible-reservation">-</span></div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="client_id" class="form-label">Client *</label>
+                        <select class="form-select" id="client_id" name="client_id" required>
+                            <option value="">Sélectionner un client</option>
+                            {% for client in clients %}
+                            <option value="{{ client.id }}">{{ client.nom }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="quantite_reservation" class="form-label">Quantité *</label>
+                        <input type="number" class="form-control" id="quantite_reservation" name="quantite" min="1" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="date_limite" class="form-label">Date limite</label>
+                        <input type="datetime-local" class="form-control" id="date_limite" name="date_limite">
+                        <div class="form-text">Date limite pour honorer la réservation</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes_reservation" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes_reservation" name="notes" rows="2" placeholder="Détails sur la réservation..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Créer la réservation</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Modifier Statut -->
+<div class="modal fade" id="modifierStatutReservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Modifier le statut</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form method="POST" id="formModifierStatutReservation">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="nouveau_statut_reservation" class="form-label">Nouveau statut</label>
+                        <select class="form-select" id="nouveau_statut_reservation" name="statut" required>
+                            <option value="En attente">En attente</option>
+                            <option value="Confirmé">Confirmé</option>
+                            <option value="Annulé">Annulé</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes_statut_reservation" class="form-label">Notes</label>
+                        <textarea class="form-control" id="notes_statut_reservation" name="notes" rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-primary">Modifier</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Détails Réservation -->
+<div class="modal fade" id="detailsReservationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Détails de la réservation</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Produit:</h6>
+                        <p id="details-reservation-produit"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Client:</h6>
+                        <p id="details-reservation-client"></p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Quantité:</h6>
+                        <p id="details-reservation-quantite"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Statut:</h6>
+                        <p><span id="details-reservation-statut" class="badge"></span></p>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Date réservation:</h6>
+                        <p id="details-reservation-date"></p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Date limite:</h6>
+                        <p id="details-reservation-limite"></p>
+                    </div>
+                </div>
+                
+                <h6>Notes:</h6>
+                <p id="details-reservation-notes"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fermer</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateStockInfo() {
+    const select = document.getElementById('produit_id');
+    const selectedOption = select.options[select.selectedIndex];
+    
+    if (selectedOption.value) {
+        const stock = parseInt(selectedOption.dataset.stock);
+        document.getElementById('stock-disponible-reservation').textContent = stock;
+        
+        // Mettre à jour le max de quantité
+        document.getElementById('quantite_reservation').max = stock;
+    } else {
+        document.getElementById('stock-disponible-reservation').textContent = '-';
+    }
+}
+
+function modifierStatut(reservationId, nouveauStatut, notesActuelles) {
+    document.getElementById('formModifierStatutReservation').action = '/reservations/modifier/' + reservationId;
+    document.getElementById('nouveau_statut_reservation').value = nouveauStatut;
+    document.getElementById('notes_statut_reservation').value = notesActuelles;
+    
+    var modal = new bootstrap.Modal(document.getElementById('modifierStatutReservationModal'));
+    modal.show();
+}
+
+function voirDetails(id, produit, client, quantite, dateReservation, dateLimite, statut, notes) {
+    document.getElementById('details-reservation-produit').textContent = produit;
+    document.getElementById('details-reservation-client').textContent = client;
+    document.getElementById('details-reservation-quantite').textContent = quantite;
+    document.getElementById('details-reservation-date').textContent = dateReservation;
+    document.getElementById('details-reservation-limite').textContent = dateLimite || 'Aucune';
+    document.getElementById('details-reservation-notes').textContent = notes || 'Aucune note';
+    
+    const statutBadge = document.getElementById('details-reservation-statut');
+    statutBadge.textContent = statut;
+    statutBadge.className = 'badge bg-' + (statut === 'Confirmé' ? 'success' : statut === 'Annulé' ? 'danger' : 'warning');
+    
+    var modal = new bootstrap.Modal(document.getElementById('detailsReservationModal'));
+    modal.show();
+}
+</script>
+{% endblock %}
