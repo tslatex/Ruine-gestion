@@ -1,0 +1,361 @@
+/**
+ * RuineGestion - Styles personnalisés
+ * Styles complémentaires pour l'application de gestion commerciale
+ */
+
+/* Variables CSS personnalisées */
+:root {
+    --ruine-primary: #6f42c1;
+    --ruine-success: #198754;
+    --ruine-warning: #fd7e14;
+    --ruine-danger: #dc3545;
+    --ruine-info: #0dcaf0;
+    --ruine-border-radius: 0.5rem;
+    --ruine-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --ruine-shadow-lg: 0 1rem 3rem rgba(0, 0, 0, 0.175);
+}
+
+/* Layout principal */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    padding-top: 76px; /* Compensation pour la navbar fixe */
+}
+
+.main-content {
+    min-height: calc(100vh - 200px);
+}
+
+/* Navbar personnalisée */
+.navbar-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+
+.navbar-nav .nav-link {
+    font-weight: 500;
+    transition: color 0.15s ease-in-out;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--bs-primary) !important;
+}
+
+/* Cards et conteneurs */
+.card {
+    border-radius: var(--ruine-border-radius);
+    box-shadow: var(--ruine-shadow);
+    transition: box-shadow 0.15s ease-in-out;
+}
+
+.card:hover {
+    box-shadow: var(--ruine-shadow-lg);
+}
+
+.card-header {
+    background-color: var(--bs-gray-100);
+    border-bottom: 1px solid var(--bs-gray-300);
+    font-weight: 600;
+}
+
+/* Tables responsives */
+.table-responsive {
+    border-radius: var(--ruine-border-radius);
+}
+
+.table th {
+    font-weight: 600;
+    border-top: none;
+    background-color: var(--bs-gray-50);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--bs-gray-50);
+}
+
+/* Badges et statuts */
+.badge {
+    font-size: 0.875em;
+    font-weight: 500;
+}
+
+.badge.fs-6 {
+    font-size: 1rem !important;
+    padding: 0.5rem 0.75rem;
+}
+
+/* Alertes de stock */
+.stock-alert {
+    position: relative;
+}
+
+.stock-warning {
+    position: absolute;
+    top: -5px;
+    right: -5px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.1);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* Boutons personnalisés */
+.btn {
+    border-radius: var(--ruine-border-radius);
+    font-weight: 500;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-group .btn {
+    border-radius: 0;
+}
+
+.btn-group .btn:first-child {
+    border-top-left-radius: var(--ruine-border-radius);
+    border-bottom-left-radius: var(--ruine-border-radius);
+}
+
+.btn-group .btn:last-child {
+    border-top-right-radius: var(--ruine-border-radius);
+    border-bottom-right-radius: var(--ruine-border-radius);
+}
+
+/* Formulaires */
+.form-control, .form-select {
+    border-radius: var(--ruine-border-radius);
+    border: 1px solid var(--bs-gray-300);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus, .form-select:focus {
+    border-color: var(--ruine-primary);
+    box-shadow: 0 0 0 0.2rem rgba(111, 66, 193, 0.25);
+}
+
+.was-validated .form-control:invalid,
+.form-control.is-invalid {
+    border-color: var(--ruine-danger);
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+/* Modals */
+.modal-content {
+    border-radius: var(--ruine-border-radius);
+    border: none;
+    box-shadow: var(--ruine-shadow-lg);
+}
+
+.modal-header {
+    border-bottom: 1px solid var(--bs-gray-200);
+    background-color: var(--bs-gray-50);
+}
+
+.modal-footer {
+    border-top: 1px solid var(--bs-gray-200);
+    background-color: var(--bs-gray-50);
+}
+
+/* Statistiques et métriques */
+.metric-card {
+    text-align: center;
+    padding: 2rem 1rem;
+}
+
+.metric-value {
+    font-size: 2.5rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+}
+
+.metric-label {
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    opacity: 0.8;
+}
+
+/* Graphiques */
+.chart-container {
+    position: relative;
+    height: 400px;
+    margin: 1rem 0;
+}
+
+/* Pagination */
+.pagination .page-link {
+    border-radius: var(--ruine-border-radius);
+    margin: 0 2px;
+    border: 1px solid var(--bs-gray-300);
+}
+
+.pagination .page-item.active .page-link {
+    background-color: var(--ruine-primary);
+    border-color: var(--ruine-primary);
+}
+
+/* Loading states */
+.loading {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.spinner-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* États vides */
+.empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--bs-gray-500);
+}
+
+.empty-state i {
+    color: var(--bs-gray-400);
+    margin-bottom: 1rem;
+}
+
+/* Responsive design amélioré */
+@media (max-width: 768px) {
+    body {
+        padding-top: 66px;
+    }
+
+    .navbar-brand {
+        font-size: 1.25rem;
+    }
+
+    .metric-value {
+        font-size: 2rem;
+    }
+
+    .chart-container {
+        height: 300px;
+    }
+
+    .btn-group {
+        flex-direction: column;
+    }
+
+    .btn-group .btn {
+        border-radius: var(--ruine-border-radius);
+        margin-bottom: 0.25rem;
+    }
+
+    .btn-group .btn:not(:last-child) {
+        margin-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .container {
+        padding-left: 1rem;
+        padding-right: 1rem;
+    }
+
+    .modal-dialog {
+        margin: 1rem;
+    }
+
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+
+/* Animations personnalisées */
+@keyframes slideInUp {
+    from {
+        transform: translateY(30px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+.slide-in-up {
+    animation: slideInUp 0.3s ease-out;
+}
+
+.fade-in {
+    animation: fadeIn 0.3s ease-out;
+}
+
+/* Utilitaires */
+.text-ariary::after {
+    content: " Ar";
+    font-weight: normal;
+    opacity: 0.8;
+}
+
+.cursor-pointer {
+    cursor: pointer;
+}
+
+.border-dashed {
+    border-style: dashed !important;
+}
+
+.shadow-custom {
+    box-shadow: var(--ruine-shadow-lg) !important;
+}
+
+/* Footer */
+footer {
+    margin-top: auto;
+}
+
+/* Print styles */
+@media print {
+    .navbar,
+    .btn,
+    .modal,
+    .no-print {
+        display: none !important;
+    }
+
+    body {
+        padding-top: 0;
+    }
+
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    .card {
+        border: 1px solid #000;
+        box-shadow: none;
+    }
+}
