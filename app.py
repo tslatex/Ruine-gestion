@@ -1,4 +1,3 @@
-
 import os
 import logging
 from flask import Flask
@@ -44,15 +43,15 @@ def create_app():
     jwt.init_app(app)
     
     # Register blueprints
-    from auth_routes import auth_bp
-    from dashboard_routes import dashboard_bp
-    from produits_routes import produits_bp
-    from clients_routes import clients_bp
-    from ventes_routes import ventes_bp
-    from stocks_routes import stocks_bp
-    from livraisons_routes import livraisons_bp
-    from reservations_routes import reservations_bp
-    from exports_routes import exports_bp
+    from routes.auth_routes import auth_bp
+    from routes.dashboard_routes import dashboard_bp
+    from routes.produits_routes import produits_bp
+    from routes.clients_routes import clients_bp
+    from routes.ventes_routes import ventes_bp
+    from routes.stocks_routes import stocks_bp
+    from routes.livraisons_routes import livraisons_bp
+    from routes.reservations_routes import reservations_bp
+    from routes.exports_routes import exports_bp
     
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -73,18 +72,17 @@ def create_app():
         AuthService.create_default_user()
         
         # Démarrer le planificateur de tâches automatiques (en différé)
-        # Temporairement désactivé pour éviter les conflits de rechargement
-        # def start_scheduler_delayed():
-        #     import threading
-        #     import time
-        #     def delayed_start():
-        #         time.sleep(2)  # Attendre que l'app soit complètement initialisée
-        #         from scheduler_service import start_scheduler
-        #         start_scheduler()
-        #     thread = threading.Thread(target=delayed_start, daemon=True)
-        #     thread.start()
-        # 
-        # start_scheduler_delayed()
+        def start_scheduler_delayed():
+            import threading
+            import time
+            def delayed_start():
+                time.sleep(2)  # Attendre que l'app soit complètement initialisée
+                from services.scheduler_service import start_scheduler
+                start_scheduler()
+            thread = threading.Thread(target=delayed_start, daemon=True)
+            thread.start()
+        
+        start_scheduler_delayed()
     
     return app
 
